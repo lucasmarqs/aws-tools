@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+SERVICE_NAME=$1
+CLUSTER=$2
+
+extractArnResource() {
+  IFS='/' read -ra ARN <<< "$1"
+  echo ${ARN[1]}
+}
+
+TASK_ARN=$(
+  aws ecs list-tasks --cluster "$CLUSTER" --service-name "$SERVICE_NAME" | \
+    jq -r '.taskArns[0]'
+)
+TASK=$(extractArnResource "$TASK_ARN")
+
+if [ -z $TASK ]; then
+  echo "There is not any task running for service $SERVICE_NAME"
+  exit 1
+fi
+
+CONTAINER_INSTANCE_ARN=$(
+  aws ecs describe-tasks --cluster "$CLUSTER" --tasks "$TASK" | \
+    jq -r '.tasks[0].containerInstanceArn'
+)
+IFS='/' read -ra ARN <<< "$CONTAINER_INSTANCE_ARN"
+CONTAINER_INSTANCE=${ARN[1]}
+
+EC2_INSTANCE_ID=$(
+  aws ecs describe-container-instances --cluster "$CLUSTER" --container-instances "$CONTAINER_INSTANCE" | \
+    jq -r '.containerInstances[0].ec2InstanceId'
+)
+
+aws ec2 describe-instances --instance-ids "$EC2_INSTANCE_ID" | \
+  jq -r '.Reservations[0].Instances[0].NetworkInterfaces[0].PrivateIpAddress'
