@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+names=$@
+
+aws ssm get-parameters --names $names --with-decrypt --query "Parameters[*].{Name:Name,Value:Value}"

@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# ssmput abstract the first arguments so its focus is only on the
+# name parameter allowing you to pass the other arguments as you need.
+aws ssm put-parameter --name "$@"
